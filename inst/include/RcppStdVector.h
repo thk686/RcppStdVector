@@ -26,7 +26,7 @@ template <int RTYPE>
 using value_t = typename ctype<RTYPE>::type;
 
 template <int RTYPE>
-struct RcppStdVector {
+struct Rallocator {
   SEXP s;
   int count = 0;
   using value_type = value_t<RTYPE>;
@@ -44,7 +44,7 @@ struct RcppStdVector {
 };
 
 template <int RTYPE>
-using std_vec_t = std::vector<value_t<RTYPE>, RcppStdVector<RTYPE>>;
+using std_vec_t = std::vector<value_t<RTYPE>, Rallocator<RTYPE>>;
 
 using std_vec_real = std_vec_t<REALSXP>;
 using std_vec_int = std_vec_t<INTSXP>;
