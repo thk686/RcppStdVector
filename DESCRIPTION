@@ -1,0 +1,13 @@
+Package: RcppStdVector
+Type: Package
+Title: Efficient Standard Vector With Rcpp
+Version: 0.1.0
+Author: Tim Keitt
+Maintainer: Tim Keitt <tkeitt@gmail.com>
+Description: Passing std::vector in Rcpp entails a full copy of its contents. This package provides a custom allocator that when used with std::vector allows zero-copy on return.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Imports: Rcpp (>= 0.12.9)
+LinkingTo: Rcpp
+RoxygenNote: 6.1.1
