@@ -1,7 +1,7 @@
 #ifndef __RCPPSTDVECTOR_H__
 #define __RCPPSTDVECTOR_H__
 
-#include <Rcpp.h>
+#include <RcppCommon.h>
 
 namespace RcppStdVector {
 
@@ -137,5 +137,7 @@ as<RcppStdVector::std_vec_chr>(SEXP s) {
 }
 
 }; // namespace Rcpp
+
+#include <Rcpp.h>
 
 #endif // __RCPPSTDVECTOR_H__

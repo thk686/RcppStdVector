@@ -1,5 +1,7 @@
 #include "RcppStdVector.h"
 
+#include "Rcpp.h"
+
 // [[Rcpp::export]]
 SEXP test_alloc()
 {
@@ -46,3 +48,61 @@ SEXP test_copy_rcpp_chr(Rcpp::CharacterVector& x) {
   std::copy(x.begin(), x.end(), oi);
   return Rcpp::wrap(y);
 }
+
+// [[Rcpp::export]]
+SEXP test_double_it(RcppStdVector::std_vec_sxp& x) {
+  for (auto s = x.begin(); s != x.end(); ++s) {
+    switch(TYPEOF(*s)) {
+    case REALSXP: {
+      RcppStdVector::std_vec_real y;
+      y.reserve(2 * LENGTH(*s));
+      auto oi = std::back_inserter(y);
+      std::copy(REAL(*s), REAL(*s) + LENGTH(*s), oi);
+      std::copy(REAL(*s), REAL(*s) + LENGTH(*s), oi);
+      *s = Rcpp::wrap(y);
+      break;
+    }
+    case INTSXP: {
+      RcppStdVector::std_vec_int y;
+      y.reserve(2 * LENGTH(*s));
+      auto oi = std::back_inserter(y);
+      std::copy(INTEGER(*s), INTEGER(*s) + LENGTH(*s), oi);
+      std::copy(INTEGER(*s), INTEGER(*s) + LENGTH(*s), oi);
+      *s = Rcpp::wrap(y);
+      break;
+    }
+    case LGLSXP: {
+      RcppStdVector::std_vec_lgl y;
+      y.reserve(2 * LENGTH(*s));
+      auto oi = std::back_inserter(y);
+      std::copy(LOGICAL(*s), LOGICAL(*s) + LENGTH(*s), oi);
+      std::copy(LOGICAL(*s), LOGICAL(*s) + LENGTH(*s), oi);
+      *s = Rcpp::wrap(y);
+      break;
+    }
+    case STRSXP: {
+      RcppStdVector::std_vec_chr y;
+      y.reserve(2 * LENGTH(*s));
+      for (int i = 0; i != LENGTH(*s); ++i)
+        y.push_back(STRING_ELT(*s, i));
+      for (int i = 0; i != LENGTH(*s); ++i)
+        y.push_back(STRING_ELT(*s, i));
+      *s = Rcpp::wrap(y);
+      break;
+    }
+    case VECSXP: {
+      RcppStdVector::std_vec_sxp y;
+      y.reserve(2 * LENGTH(*s));
+      for (int i = 0; i != LENGTH(*s); ++i)
+        y.push_back(VECTOR_ELT(*s, i));
+      for (int i = 0; i != LENGTH(*s); ++i)
+        y.push_back(VECTOR_ELT(*s, i));
+      *s = Rcpp::wrap(y);
+      break;
+    }
+    default: Rcpp::stop("Unsupported column type");
+    }
+  }
+  return Rcpp::wrap(x);
+}
+
