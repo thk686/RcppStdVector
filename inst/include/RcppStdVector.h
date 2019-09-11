@@ -64,11 +64,20 @@ SEXP get_sexp(const T& x) {
 }
 
 template <int RTYPE>
+value_t<RTYPE>* begin(SEXP x) {
+  return static_cast<value_t<RTYPE>*>(DATAPTR(x));
+}
+
+template <int RTYPE>
+value_t<RTYPE>* end(SEXP x) {
+  return static_cast<value_t<RTYPE>*>(DATAPTR(x)) + Rf_xlength(x);
+}
+
+template <int RTYPE>
 std_vec_t<RTYPE>
 from_sexp(SEXP s) {
   if (TYPEOF(s) != RTYPE) Rcpp::stop("Invalid type");
-  return std_vec_t<RTYPE>(static_cast<value_t<RTYPE>*>(DATAPTR(s)),
-                          static_cast<value_t<RTYPE>*>(DATAPTR(s)) + Rf_xlength(s));
+  return std_vec_t<RTYPE>(begin<RTYPE>(s), end<RTYPE>(s));
 }
 
 }; // namespace RcppStdVector

@@ -25,6 +25,10 @@ test_copy_rcpp_chr <- function(x) {
     .Call('_RcppStdVector_test_copy_rcpp_chr', PACKAGE = 'RcppStdVector', x)
 }
 
+test_native <- function(x) {
+    .Call('_RcppStdVector_test_native', PACKAGE = 'RcppStdVector', x)
+}
+
 test_double_it <- function(x) {
     .Call('_RcppStdVector_test_double_it', PACKAGE = 'RcppStdVector', x)
 }
