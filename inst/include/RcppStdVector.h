@@ -44,6 +44,23 @@ struct Rallocator {
 };
 
 template <int RTYPE>
+struct RInplaceAlloc {
+  SEXP s;
+  RInplaceAlloc() = delete;
+  RInplaceAlloc(SEXP t) : s(t) {}
+  using value_type = value_t<RTYPE>;
+  value_type* allocate(std::size_t n) {
+    if (n != Rf_xlength(s))
+      Rcpp::stop("Cannot resize inplace vector");
+    return static_cast<value_type*>(DATAPTR(s));
+  }
+  void deallocate(value_type* p, std::size_t n) {}
+  void construct(value_type* p) {
+    new (static_cast<void*>(p)) value_type;
+  }
+};
+
+template <int RTYPE>
 using std_vec_t = std::vector<value_t<RTYPE>, Rallocator<RTYPE>>;
 
 using std_vec_real = std_vec_t<REALSXP>;
@@ -51,6 +68,15 @@ using std_vec_int = std_vec_t<INTSXP>;
 using std_vec_lgl = std_vec_t<LGLSXP>;
 using std_vec_sxp = std_vec_t<VECSXP>;
 using std_vec_chr = std_vec_t<STRSXP>;
+
+template <int RTYPE>
+using std_ivec_t = std::vector<value_t<RTYPE>, RInplaceAlloc<RTYPE>>;
+
+using std_ivec_real = std_ivec_t<REALSXP>;
+using std_ivec_int = std_ivec_t<INTSXP>;
+using std_ivec_lgl = std_ivec_t<LGLSXP>;
+using std_ivec_sxp = std_ivec_t<VECSXP>;
+using std_ivec_chr = std_ivec_t<STRSXP>;
 
 template <typename T>
 SEXP get_sexp(const T& x) {
@@ -78,6 +104,13 @@ std_vec_t<RTYPE>
 from_sexp(SEXP s) {
   if (TYPEOF(s) != RTYPE) Rcpp::stop("Invalid type");
   return std_vec_t<RTYPE>(begin<RTYPE>(s), end<RTYPE>(s));
+}
+
+template <int RTYPE>
+std_ivec_t<RTYPE>
+from_sexp_inp(SEXP s) {
+  if (TYPEOF(s) != RTYPE) Rcpp::stop("Invalid type");
+  return std_ivec_t<RTYPE>(Rf_xlength(s), RInplaceAlloc<RTYPE>(s));
 }
 
 }; // namespace RcppStdVector
@@ -143,6 +176,66 @@ template<>
 inline RcppStdVector::std_vec_chr
 as<RcppStdVector::std_vec_chr>(SEXP s) {
   return RcppStdVector::from_sexp<STRSXP>(s);
+}
+
+template<>
+inline SEXP
+wrap<RcppStdVector::std_ivec_real>(const RcppStdVector::std_ivec_real& x) {
+  return RcppStdVector::get_sexp(x);
+}
+
+template<>
+inline RcppStdVector::std_ivec_real
+as<RcppStdVector::std_ivec_real>(SEXP s) {
+  return RcppStdVector::from_sexp_inp<REALSXP>(s);
+}
+
+template<>
+inline SEXP
+wrap<RcppStdVector::std_ivec_int>(const RcppStdVector::std_ivec_int& x) {
+  return RcppStdVector::get_sexp(x);
+}
+
+template<>
+inline RcppStdVector::std_ivec_int
+as<RcppStdVector::std_ivec_int>(SEXP s) {
+  return RcppStdVector::from_sexp_inp<INTSXP>(s);
+}
+
+template<>
+inline SEXP
+wrap<RcppStdVector::std_ivec_lgl>(const RcppStdVector::std_ivec_lgl& x) {
+  return RcppStdVector::get_sexp(x);
+}
+
+template<>
+inline RcppStdVector::std_ivec_lgl
+as<RcppStdVector::std_ivec_lgl>(SEXP s) {
+  return RcppStdVector::from_sexp_inp<LGLSXP>(s);
+}
+
+template<>
+inline SEXP
+wrap<RcppStdVector::std_ivec_sxp>(const RcppStdVector::std_ivec_sxp& x) {
+  return RcppStdVector::get_sexp(x);
+}
+
+template<>
+inline RcppStdVector::std_ivec_sxp
+as<RcppStdVector::std_ivec_sxp>(SEXP s) {
+  return RcppStdVector::from_sexp_inp<VECSXP>(s);
+}
+
+template<>
+inline SEXP
+wrap<RcppStdVector::std_ivec_chr>(const RcppStdVector::std_ivec_chr& x) {
+  return RcppStdVector::get_sexp(x);
+}
+
+template<>
+inline RcppStdVector::std_ivec_chr
+as<RcppStdVector::std_ivec_chr>(SEXP s) {
+  return RcppStdVector::from_sexp_inp<STRSXP>(s);
 }
 
 }; // namespace Rcpp

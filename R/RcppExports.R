@@ -33,3 +33,7 @@ test_double_it <- function(x) {
     .Call('_RcppStdVector_test_double_it', PACKAGE = 'RcppStdVector', x)
 }
 
+test_inplace <- function(x) {
+    invisible(.Call('_RcppStdVector_test_inplace', PACKAGE = 'RcppStdVector', x))
+}
+

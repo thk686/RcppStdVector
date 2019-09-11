@@ -41,9 +41,20 @@ The zero-overhead return is achieved by using a custom allocator that
 allocates an R vector instead of general heap memory. This R vector is
 simply retrieved from the allocator at the end. Special consideration is
 taken when the capacity of the `std::vector` is greater than its size so
-that there are no dangling elements. It may furthermore be possible to
+that there are no dangling elements. ~~It may furthermore be possible to
 implement in-place operations using C++ placement new although this has
-not been explored.
+not been explored.~~ It is furthermore possible to construct a standard
+vector in-place over an R vector via placement new.
+
+    void my_func(RcppStandardVector::std_ivec_int& x) { // no copy
+      // modify elements directly
+    }
+
+A note of caution: *because the in-place allocator never actually
+allocates or deallocates, any operation that invalidates the iterators
+of an in-place vector could lead to undefined behavior*. In-place
+vectors should never be manually constructed or copy-constructed.
+Operations that grow the vector will throw an error.
 
 There are several reasons one might wish to use `std::vector` over the
 native Rcpp vector types. First, as part of the Standard Library,
@@ -88,7 +99,7 @@ following copies a list of elements and duplicates each.
 
     template <int RTYPE>
     void dup_vec(SEXP& s) {
-      auto y = Rcpp::as<RcppStdVector::std_vec_t<RTYPE>>(s);
+      auto y = RcppStdVector::from_sexp<RTYPE>(s);
       auto oi = std::back_inserter(y);
       y.reserve(2 * y.size());
       std::copy(RcppStdVector::begin<RTYPE>(s),
@@ -105,14 +116,16 @@ following copies a list of elements and duplicates each.
         case LGLSXP:   dup_vec<LGLSXP>(*s); break;
         case STRSXP:   dup_vec<STRSXP>(*s); break;
         case VECSXP:   dup_vec<VECSXP>(*s); break;
-        default: Rcpp::stop("Unsupported type");
+        default: Rcpp::stop("Unsupported column type");
         }
       }
       UNPROTECT(x.size());
       return Rcpp::wrap(x);
     }
 
-I get the following:
+Because calling `wrap` unprotects the underlying R vector, it is a good
+idea to protect the result unless it is immediately returned. I get the
+following:
 
     > test_double_it(list(1:3, letters[1:3], (1:3) > 2, pi))
     [[1]]
@@ -126,3 +139,25 @@ I get the following:
     
     [[4]]
     [1] 3.141593 3.141593
+
+The following code demonstrates placement new construction of a
+std::vector over the memory owned by an R vector.
+
+    void test_inplace(RcppStdVector::std_ivec_int& x) {
+      std::transform(std::begin(x), std::end(x),
+                     std::begin(x), [](int a){ return 2 * a; });
+    }
+
+This function doubles each element of an R vector without ever
+allocating.
+
+    > x <- 1:10
+    > test_inplace(x)
+    > x
+     [1]  2  4  6  8 10 12 14 16 18 20
+    > 
+
+The basic idea of this experiment is to use the standard library
+components by adapting them to work on top of R’s memory system. This is
+what I always wanted from Rcpp: a thin lightweight layer that enables
+use of standard C++.

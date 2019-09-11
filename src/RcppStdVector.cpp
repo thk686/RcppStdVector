@@ -56,7 +56,7 @@ RcppStdVector::std_vec_int test_native(RcppStdVector::std_vec_int& x) {
 
 template <int RTYPE>
 void dup_vec(SEXP& s) {
-  auto y = Rcpp::as<RcppStdVector::std_vec_t<RTYPE>>(s);
+  auto y = RcppStdVector::from_sexp<RTYPE>(s);
   auto oi = std::back_inserter(y);
   y.reserve(2 * y.size());
   std::copy(RcppStdVector::begin<RTYPE>(s),
@@ -78,4 +78,10 @@ SEXP test_double_it(RcppStdVector::std_vec_sxp& x) {
   }
   UNPROTECT(x.size());
   return Rcpp::wrap(x);
+}
+
+// [[Rcpp::export]]
+void test_inplace(RcppStdVector::std_ivec_int& x) {
+  std::transform(std::begin(x), std::end(x),
+                 std::begin(x), [](int a){ return 2 * a; });
 }
