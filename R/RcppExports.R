@@ -37,3 +37,11 @@ test_inplace <- function(x) {
     invisible(.Call('_RcppStdVector_test_inplace', PACKAGE = 'RcppStdVector', x))
 }
 
+test_no_copy_ivec <- function() {
+    invisible(.Call('_RcppStdVector_test_no_copy_ivec', PACKAGE = 'RcppStdVector'))
+}
+
+test_no_copy_construct_ivec <- function(x) {
+    invisible(.Call('_RcppStdVector_test_no_copy_construct_ivec', PACKAGE = 'RcppStdVector', x))
+}
+

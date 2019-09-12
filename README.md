@@ -14,10 +14,10 @@ Library. When used with Rcpp however, there is an inherent cost in using
 `std::vector` as memory must be copied both from and to R internal data
 structures. The RcppStdVector package allows users to write Rcpp code
 using the Standard Library `std::vector` container without incurring an
-extra container copy operation. Consider the
-    following:
+extra container copy operation. Consider the following:
 
-    std::vector<double> my_func(std::vector<double>& x) { // copy from REALSXP to std::vector here
+    std::vector<double>
+    my_func(std::vector<double>& x) { // copy from REALSXP to std::vector here
       ...
       return x; // additional copy from std::vector to REALSXP here
     }
@@ -29,32 +29,30 @@ functions can modify the vector in-place, which violates the
 no-side-effects rule. This can be useful or problematic in cases where
 the `SEXP` is aliased to several R variables. Most modifying Rcpp
 functions will therefore usually implement cloning the input vector.
-Similarly, using RcppStdVector, we can
-    write:
+Similarly, using RcppStdVector, we can write:
 
-    SEXP my_func(RcppStdVector::std_vec_real& x) { // copy here from REALSXP to std::vector
+    RcppStdVector::std_vec_real
+    my_func(RcppStdVector::std_vec_real& x) { // copy here from REALSXP to std::vector
       ...
-      return Rcpp::wrap(x); // zero-overhead, no-copy return of REALSXP
+      return x; // zero-overhead, no-copy return of REALSXP
     }
 
 The zero-overhead return is achieved by using a custom allocator that
 allocates an R vector instead of general heap memory. This R vector is
 simply retrieved from the allocator at the end. Special consideration is
 taken when the capacity of the `std::vector` is greater than its size so
-that there are no dangling elements. ~~It may furthermore be possible to
-implement in-place operations using C++ placement new although this has
-not been explored.~~ It is furthermore possible to construct a standard
-vector in-place over an R vector via placement new.
+that there are no dangling elements. It is furthermore possible to
+construct a standard vector in-place over an R vector via placement new.
 
     void my_func(RcppStandardVector::std_ivec_int& x) { // no copy
       // modify elements directly
     }
 
-A note of caution: *because the in-place allocator never actually
-allocates or deallocates, any operation that invalidates the iterators
-of an in-place vector could lead to undefined behavior*. In-place
-vectors should never be manually constructed or copy-constructed.
-Operations that grow the vector will throw an error.
+The caveat to this is that any operation that causes allocation could
+lead to undefined behavior as the in-place allocator does not actually
+allocate and delete. Operations that grow the vector will throw an
+error. Provided overloads for assignment and copy construction will also
+throw.
 
 There are several reasons one might wish to use `std::vector` over the
 native Rcpp vector types. First, as part of the Standard Library,
@@ -123,9 +121,8 @@ following copies a list of elements and duplicates each.
       return Rcpp::wrap(x);
     }
 
-Because calling `wrap` unprotects the underlying R vector, it is a good
-idea to protect the result unless it is immediately returned. I get the
-following:
+The reason for calling `PROTECT` is because when the vector `y` goes out
+of scope, its internal `SEXP` will be unprotected. I get the following:
 
     > test_double_it(list(1:3, letters[1:3], (1:3) > 2, pi))
     [[1]]
@@ -141,7 +138,7 @@ following:
     [1] 3.141593 3.141593
 
 The following code demonstrates placement new construction of a
-std::vector over the memory owned by an R vector.
+`std::vector` over the memory owned by an R vector.
 
     void test_inplace(RcppStdVector::std_ivec_int& x) {
       std::transform(std::begin(x), std::end(x),

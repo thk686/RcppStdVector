@@ -85,3 +85,18 @@ void test_inplace(RcppStdVector::std_ivec_int& x) {
   std::transform(std::begin(x), std::end(x),
                  std::begin(x), [](int a){ return 2 * a; });
 }
+
+// [[Rcpp::export]]
+void test_no_copy_ivec() {
+  SEXP s1, s2;
+  PROTECT(s1 = Rf_allocVector(REALSXP, 10));
+  PROTECT(s2 = Rf_allocVector(REALSXP, 10));
+  auto v1 = RcppStdVector::from_sexp_inplace<REALSXP>(s1),
+    v2 = RcppStdVector::from_sexp_inplace<REALSXP>(s2);
+  v1 = v2;
+}
+
+// [[Rcpp::export]]
+void test_no_copy_construct_ivec(RcppStdVector::std_ivec_int& x) {
+  RcppStdVector::std_ivec_int a(x);
+}

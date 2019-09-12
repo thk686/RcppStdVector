@@ -26,14 +26,27 @@ template <int RTYPE>
 using value_t = typename ctype<RTYPE>::type;
 
 template <int RTYPE>
+value_t<RTYPE>* begin(SEXP x) {
+  return static_cast<value_t<RTYPE>*>(DATAPTR(x));
+}
+
+template <int RTYPE>
+value_t<RTYPE>* end(SEXP x) {
+  return static_cast<value_t<RTYPE>*>(DATAPTR(x)) + Rf_xlength(x);
+}
+
+template <int RTYPE>
 struct Rallocator {
   SEXP s;
   int count = 0;
   using value_type = value_t<RTYPE>;
+  value_type* get_ptr() {
+    return begin<RTYPE>(s);
+  }
   value_type* allocate(std::size_t n) {
     s = Rf_allocVector(RTYPE, n);
     PROTECT(s); ++count;
-    return static_cast<value_type*>(DATAPTR(s));
+    return get_ptr();
   }
   void deallocate(value_type* p, std::size_t n) {
     if (count > 0) {
@@ -43,22 +56,47 @@ struct Rallocator {
   }
 };
 
+template <int RTYPE1, int RTYPE2>
+bool operator==(Rallocator<RTYPE1> const& a1, Rallocator<RTYPE2> const& a2) {
+  if (RTYPE1 != RTYPE2 || a1.get_ptr() != a2.get_ptr()) return false;
+  return true;
+}
+
+template <int RTYPE1, int RTYPE2>
+bool operator!=(Rallocator<RTYPE1> const& a1, Rallocator<RTYPE2> const& a2) {
+  return !(a1 == a1);
+}
+
 template <int RTYPE>
 struct RInplaceAlloc {
   SEXP s;
-  RInplaceAlloc() = delete;
+  RInplaceAlloc() = default;
   RInplaceAlloc(SEXP t) : s(t) {}
   using value_type = value_t<RTYPE>;
+  value_type* get_ptr() {
+    return begin<RTYPE>(s);
+  }
   value_type* allocate(std::size_t n) {
     if (n != Rf_xlength(s))
       Rcpp::stop("Cannot resize inplace vector");
-    return static_cast<value_type*>(DATAPTR(s));
+    return get_ptr();
   }
   void deallocate(value_type* p, std::size_t n) {}
   void construct(value_type* p) {
     new (static_cast<void*>(p)) value_type;
   }
 };
+
+template <int RTYPE1, int RTYPE2>
+bool operator==(RInplaceAlloc<RTYPE1> const& a1, RInplaceAlloc<RTYPE2> const& a2) {
+  if (RTYPE1 != RTYPE2 || a1.get_ptr() != a2.get_ptr()) return false;
+  return true;
+}
+
+template <int RTYPE1, int RTYPE2>
+bool operator!=(RInplaceAlloc<RTYPE1> const& a1, RInplaceAlloc<RTYPE2> const& a2) {
+  return !(a1 == a1);
+}
 
 template <int RTYPE>
 using std_vec_t = std::vector<value_t<RTYPE>, Rallocator<RTYPE>>;
@@ -90,16 +128,6 @@ SEXP get_sexp(const T& x) {
 }
 
 template <int RTYPE>
-value_t<RTYPE>* begin(SEXP x) {
-  return static_cast<value_t<RTYPE>*>(DATAPTR(x));
-}
-
-template <int RTYPE>
-value_t<RTYPE>* end(SEXP x) {
-  return static_cast<value_t<RTYPE>*>(DATAPTR(x)) + Rf_xlength(x);
-}
-
-template <int RTYPE>
 std_vec_t<RTYPE>
 from_sexp(SEXP s) {
   if (TYPEOF(s) != RTYPE) Rcpp::stop("Invalid type");
@@ -108,7 +136,7 @@ from_sexp(SEXP s) {
 
 template <int RTYPE>
 std_ivec_t<RTYPE>
-from_sexp_inp(SEXP s) {
+from_sexp_inplace(SEXP s) {
   if (TYPEOF(s) != RTYPE) Rcpp::stop("Invalid type");
   return std_ivec_t<RTYPE>(Rf_xlength(s), RInplaceAlloc<RTYPE>(s));
 }
@@ -187,7 +215,7 @@ wrap<RcppStdVector::std_ivec_real>(const RcppStdVector::std_ivec_real& x) {
 template<>
 inline RcppStdVector::std_ivec_real
 as<RcppStdVector::std_ivec_real>(SEXP s) {
-  return RcppStdVector::from_sexp_inp<REALSXP>(s);
+  return RcppStdVector::from_sexp_inplace<REALSXP>(s);
 }
 
 template<>
@@ -199,7 +227,7 @@ wrap<RcppStdVector::std_ivec_int>(const RcppStdVector::std_ivec_int& x) {
 template<>
 inline RcppStdVector::std_ivec_int
 as<RcppStdVector::std_ivec_int>(SEXP s) {
-  return RcppStdVector::from_sexp_inp<INTSXP>(s);
+  return RcppStdVector::from_sexp_inplace<INTSXP>(s);
 }
 
 template<>
@@ -211,7 +239,7 @@ wrap<RcppStdVector::std_ivec_lgl>(const RcppStdVector::std_ivec_lgl& x) {
 template<>
 inline RcppStdVector::std_ivec_lgl
 as<RcppStdVector::std_ivec_lgl>(SEXP s) {
-  return RcppStdVector::from_sexp_inp<LGLSXP>(s);
+  return RcppStdVector::from_sexp_inplace<LGLSXP>(s);
 }
 
 template<>
@@ -223,7 +251,7 @@ wrap<RcppStdVector::std_ivec_sxp>(const RcppStdVector::std_ivec_sxp& x) {
 template<>
 inline RcppStdVector::std_ivec_sxp
 as<RcppStdVector::std_ivec_sxp>(SEXP s) {
-  return RcppStdVector::from_sexp_inp<VECSXP>(s);
+  return RcppStdVector::from_sexp_inplace<VECSXP>(s);
 }
 
 template<>
@@ -235,10 +263,65 @@ wrap<RcppStdVector::std_ivec_chr>(const RcppStdVector::std_ivec_chr& x) {
 template<>
 inline RcppStdVector::std_ivec_chr
 as<RcppStdVector::std_ivec_chr>(SEXP s) {
-  return RcppStdVector::from_sexp_inp<STRSXP>(s);
+  return RcppStdVector::from_sexp_inplace<STRSXP>(s);
 }
 
 }; // namespace Rcpp
+
+template<>
+inline RcppStdVector::std_ivec_real&
+RcppStdVector::std_ivec_real::operator=(const RcppStdVector::std_ivec_real& x) {
+  Rcpp::stop("Cannot copy in-place vectors");
+}
+
+template<>
+inline RcppStdVector::std_ivec_int&
+RcppStdVector::std_ivec_int::operator=(const RcppStdVector::std_ivec_int& x) {
+  Rcpp::stop("Cannot copy in-place vectors");
+}
+
+template<>
+inline RcppStdVector::std_ivec_lgl&
+RcppStdVector::std_ivec_lgl::operator=(const RcppStdVector::std_ivec_lgl& x) {
+  Rcpp::stop("Cannot copy in-place vectors");
+}
+
+template<>
+inline RcppStdVector::std_ivec_chr&
+RcppStdVector::std_ivec_chr::operator=(const RcppStdVector::std_ivec_chr& x) {
+  Rcpp::stop("Cannot copy in-place vectors");
+}
+
+template<>
+inline RcppStdVector::std_ivec_sxp&
+RcppStdVector::std_ivec_sxp::operator=(const RcppStdVector::std_ivec_sxp& x) {
+  Rcpp::stop("Cannot copy in-place vectors");
+}
+
+template<> inline
+RcppStdVector::std_ivec_real::vector(const RcppStdVector::std_ivec_real& x) {
+  Rcpp::stop("Cannot copy construct in-place vectors");
+}
+
+template<> inline
+RcppStdVector::std_ivec_int::vector(const RcppStdVector::std_ivec_int& x) {
+  Rcpp::stop("Cannot copy construct in-place vectors");
+}
+
+template<> inline
+RcppStdVector::std_ivec_lgl::vector(const RcppStdVector::std_ivec_lgl& x) {
+  Rcpp::stop("Cannot copy construct in-place vectors");
+}
+
+template<> inline
+RcppStdVector::std_ivec_chr::vector(const RcppStdVector::std_ivec_chr& x) {
+  Rcpp::stop("Cannot copy construct in-place vectors");
+}
+
+template<> inline
+RcppStdVector::std_ivec_sxp::vector(const RcppStdVector::std_ivec_sxp& x) {
+  Rcpp::stop("Cannot copy construct in-place vectors");
+}
 
 #include <Rcpp.h>
 
