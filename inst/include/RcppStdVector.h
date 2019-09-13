@@ -82,9 +82,7 @@ struct RInplaceAlloc {
     return get_ptr();
   }
   void deallocate(value_type* p, std::size_t n) {}
-  void construct(value_type* p) {
-    new (static_cast<void*>(p)) value_type;
-  }
+  void construct(value_type* p) {}
 };
 
 template <int RTYPE1, int RTYPE2>
@@ -111,10 +109,10 @@ template <int RTYPE>
 using std_ivec_t = std::vector<value_t<RTYPE>, RInplaceAlloc<RTYPE>>;
 
 using std_ivec_real = std_ivec_t<REALSXP>;
-using std_ivec_int = std_ivec_t<INTSXP>;
-using std_ivec_lgl = std_ivec_t<LGLSXP>;
-using std_ivec_sxp = std_ivec_t<VECSXP>;
-using std_ivec_chr = std_ivec_t<STRSXP>;
+using std_ivec_int  = std_ivec_t<INTSXP>;
+using std_ivec_lgl  = std_ivec_t<LGLSXP>;
+using std_ivec_sxp  = std_ivec_t<VECSXP>;
+using std_ivec_chr  = std_ivec_t<STRSXP>;
 
 template <typename T>
 SEXP get_sexp(const T& x) {
@@ -146,182 +144,52 @@ from_sexp_inplace(SEXP s) {
 namespace Rcpp
 {
 
-template<>
-inline SEXP
-wrap<RcppStdVector::std_vec_real>(const RcppStdVector::std_vec_real& x) {
-  return RcppStdVector::get_sexp(x);
+#define gen_wrap_as(T, U)                                      \
+template<>                                                     \
+inline SEXP                                                    \
+wrap<RcppStdVector::std_vec_##T>(const RcppStdVector::std_vec_##T& x) { \
+  return RcppStdVector::get_sexp(x);                           \
+}                                                              \
+template<>                                                     \
+inline RcppStdVector::std_vec_##T                              \
+as<RcppStdVector::std_vec_##T>(SEXP s) {                       \
+  return RcppStdVector::from_sexp<U>(s);                       \
+}                                                              \
+template<>                                                     \
+inline SEXP                                                    \
+wrap<RcppStdVector::std_ivec_##T>(const RcppStdVector::std_ivec_##T& x) { \
+  return RcppStdVector::get_sexp(x);                           \
+}                                                              \
+template<>                                                     \
+inline RcppStdVector::std_ivec_##T                             \
+as<RcppStdVector::std_ivec_##T>(SEXP s) {                      \
+  return RcppStdVector::from_sexp_inplace<U>(s);               \
 }
 
-template<>
-inline RcppStdVector::std_vec_real
-as<RcppStdVector::std_vec_real>(SEXP s) {
-  return RcppStdVector::from_sexp<REALSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_vec_int>(const RcppStdVector::std_vec_int& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_vec_int
-as<RcppStdVector::std_vec_int>(SEXP s) {
-  return RcppStdVector::from_sexp<INTSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_vec_lgl>(const RcppStdVector::std_vec_lgl& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_vec_lgl
-as<RcppStdVector::std_vec_lgl>(SEXP s) {
-  return RcppStdVector::from_sexp<LGLSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_vec_sxp>(const RcppStdVector::std_vec_sxp& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_vec_sxp
-as<RcppStdVector::std_vec_sxp>(SEXP s) {
-  return RcppStdVector::from_sexp<VECSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_vec_chr>(const RcppStdVector::std_vec_chr& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_vec_chr
-as<RcppStdVector::std_vec_chr>(SEXP s) {
-  return RcppStdVector::from_sexp<STRSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_ivec_real>(const RcppStdVector::std_ivec_real& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_ivec_real
-as<RcppStdVector::std_ivec_real>(SEXP s) {
-  return RcppStdVector::from_sexp_inplace<REALSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_ivec_int>(const RcppStdVector::std_ivec_int& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_ivec_int
-as<RcppStdVector::std_ivec_int>(SEXP s) {
-  return RcppStdVector::from_sexp_inplace<INTSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_ivec_lgl>(const RcppStdVector::std_ivec_lgl& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_ivec_lgl
-as<RcppStdVector::std_ivec_lgl>(SEXP s) {
-  return RcppStdVector::from_sexp_inplace<LGLSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_ivec_sxp>(const RcppStdVector::std_ivec_sxp& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_ivec_sxp
-as<RcppStdVector::std_ivec_sxp>(SEXP s) {
-  return RcppStdVector::from_sexp_inplace<VECSXP>(s);
-}
-
-template<>
-inline SEXP
-wrap<RcppStdVector::std_ivec_chr>(const RcppStdVector::std_ivec_chr& x) {
-  return RcppStdVector::get_sexp(x);
-}
-
-template<>
-inline RcppStdVector::std_ivec_chr
-as<RcppStdVector::std_ivec_chr>(SEXP s) {
-  return RcppStdVector::from_sexp_inplace<STRSXP>(s);
-}
+gen_wrap_as(real, REALSXP);
+gen_wrap_as(int,  INTSXP);
+gen_wrap_as(lgl,  LGLSXP);
+gen_wrap_as(chr,  STRSXP);
+gen_wrap_as(sxp,  VECSXP);
 
 }; // namespace Rcpp
 
-template<>
-inline RcppStdVector::std_ivec_real&
-RcppStdVector::std_ivec_real::operator=(const RcppStdVector::std_ivec_real& x) {
-  Rcpp::stop("Cannot copy in-place vectors");
+#define set_no_copy(T)                                         \
+template<>                                                     \
+inline RcppStdVector::std_ivec_##T&                            \
+RcppStdVector::std_ivec_##T::operator=(const RcppStdVector::std_ivec_##T& x) { \
+  Rcpp::stop("Cannot copy in-place vectors");                  \
+}                                                              \
+template<> inline                                              \
+RcppStdVector::std_ivec_##T::vector(const RcppStdVector::std_ivec_##T& x) { \
+  Rcpp::stop("Cannot copy construct in-place vectors");        \
 }
 
-template<>
-inline RcppStdVector::std_ivec_int&
-RcppStdVector::std_ivec_int::operator=(const RcppStdVector::std_ivec_int& x) {
-  Rcpp::stop("Cannot copy in-place vectors");
-}
-
-template<>
-inline RcppStdVector::std_ivec_lgl&
-RcppStdVector::std_ivec_lgl::operator=(const RcppStdVector::std_ivec_lgl& x) {
-  Rcpp::stop("Cannot copy in-place vectors");
-}
-
-template<>
-inline RcppStdVector::std_ivec_chr&
-RcppStdVector::std_ivec_chr::operator=(const RcppStdVector::std_ivec_chr& x) {
-  Rcpp::stop("Cannot copy in-place vectors");
-}
-
-template<>
-inline RcppStdVector::std_ivec_sxp&
-RcppStdVector::std_ivec_sxp::operator=(const RcppStdVector::std_ivec_sxp& x) {
-  Rcpp::stop("Cannot copy in-place vectors");
-}
-
-template<> inline
-RcppStdVector::std_ivec_real::vector(const RcppStdVector::std_ivec_real& x) {
-  Rcpp::stop("Cannot copy construct in-place vectors");
-}
-
-template<> inline
-RcppStdVector::std_ivec_int::vector(const RcppStdVector::std_ivec_int& x) {
-  Rcpp::stop("Cannot copy construct in-place vectors");
-}
-
-template<> inline
-RcppStdVector::std_ivec_lgl::vector(const RcppStdVector::std_ivec_lgl& x) {
-  Rcpp::stop("Cannot copy construct in-place vectors");
-}
-
-template<> inline
-RcppStdVector::std_ivec_chr::vector(const RcppStdVector::std_ivec_chr& x) {
-  Rcpp::stop("Cannot copy construct in-place vectors");
-}
-
-template<> inline
-RcppStdVector::std_ivec_sxp::vector(const RcppStdVector::std_ivec_sxp& x) {
-  Rcpp::stop("Cannot copy construct in-place vectors");
-}
+set_no_copy(real);
+set_no_copy(int);
+set_no_copy(lgl);
+set_no_copy(sxp);
+set_no_copy(chr);
 
 #include <Rcpp.h>
 
