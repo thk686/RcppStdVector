@@ -68,17 +68,18 @@ bool operator!=(Rallocator<RTYPE1> const& a1, Rallocator<RTYPE2> const& a2) {
 }
 
 template <int RTYPE>
-struct RInplaceAlloc {
+struct InPlaceAlloc {
   SEXP s;
-  RInplaceAlloc() = default;
-  RInplaceAlloc(SEXP t) : s(t) {}
+  bool constructed = false;
+  InPlaceAlloc(SEXP t) : s(t) {}
   using value_type = value_t<RTYPE>;
   value_type* get_ptr() {
     return begin<RTYPE>(s);
   }
   value_type* allocate(std::size_t n) {
-    if (n != Rf_xlength(s))
-      Rcpp::stop("Cannot resize inplace vector");
+    if (constructed)
+      Rcpp::stop("In-place vectors cannot allocate");
+    constructed = true;
     return get_ptr();
   }
   void deallocate(value_type* p, std::size_t n) {}
@@ -86,13 +87,13 @@ struct RInplaceAlloc {
 };
 
 template <int RTYPE1, int RTYPE2>
-bool operator==(RInplaceAlloc<RTYPE1> const& a1, RInplaceAlloc<RTYPE2> const& a2) {
+bool operator==(InPlaceAlloc<RTYPE1> const& a1, InPlaceAlloc<RTYPE2> const& a2) {
   if (RTYPE1 != RTYPE2 || a1.get_ptr() != a2.get_ptr()) return false;
   return true;
 }
 
 template <int RTYPE1, int RTYPE2>
-bool operator!=(RInplaceAlloc<RTYPE1> const& a1, RInplaceAlloc<RTYPE2> const& a2) {
+bool operator!=(InPlaceAlloc<RTYPE1> const& a1, InPlaceAlloc<RTYPE2> const& a2) {
   return !(a1 == a1);
 }
 
@@ -106,7 +107,7 @@ using std_vec_sxp = std_vec_t<VECSXP>;
 using std_vec_chr = std_vec_t<STRSXP>;
 
 template <int RTYPE>
-using std_ivec_t = std::vector<value_t<RTYPE>, RInplaceAlloc<RTYPE>>;
+using std_ivec_t = std::vector<value_t<RTYPE>, InPlaceAlloc<RTYPE>>;
 
 using std_ivec_real = std_ivec_t<REALSXP>;
 using std_ivec_int  = std_ivec_t<INTSXP>;
@@ -136,7 +137,7 @@ template <int RTYPE>
 std_ivec_t<RTYPE>
 from_sexp_inplace(SEXP s) {
   if (TYPEOF(s) != RTYPE) Rcpp::stop("Invalid type");
-  return std_ivec_t<RTYPE>(Rf_xlength(s), RInplaceAlloc<RTYPE>(s));
+  return std_ivec_t<RTYPE>(Rf_xlength(s), InPlaceAlloc<RTYPE>(s));
 }
 
 }; // namespace RcppStdVector
@@ -173,23 +174,6 @@ gen_wrap_as(chr,  STRSXP);
 gen_wrap_as(sxp,  VECSXP);
 
 }; // namespace Rcpp
-
-#define set_no_copy(T)                                         \
-template<>                                                     \
-inline RcppStdVector::std_ivec_##T&                            \
-RcppStdVector::std_ivec_##T::operator=(const RcppStdVector::std_ivec_##T& x) { \
-  Rcpp::stop("Cannot copy in-place vectors");                  \
-}                                                              \
-template<> inline                                              \
-RcppStdVector::std_ivec_##T::vector(const RcppStdVector::std_ivec_##T& x) { \
-  Rcpp::stop("Cannot copy construct in-place vectors");        \
-}
-
-set_no_copy(real);
-set_no_copy(int);
-set_no_copy(lgl);
-set_no_copy(sxp);
-set_no_copy(chr);
 
 #include <Rcpp.h>
 

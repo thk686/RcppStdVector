@@ -102,13 +102,26 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
-// test_no_copy_ivec
-void test_no_copy_ivec();
-RcppExport SEXP _RcppStdVector_test_no_copy_ivec() {
+// test_copy_ivec
+void test_copy_ivec(RcppStdVector::std_ivec_int& x, RcppStdVector::std_ivec_int& y);
+RcppExport SEXP _RcppStdVector_test_copy_ivec(SEXP xSEXP, SEXP ySEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
-    test_no_copy_ivec();
+    Rcpp::traits::input_parameter< RcppStdVector::std_ivec_int& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< RcppStdVector::std_ivec_int& >::type y(ySEXP);
+    test_copy_ivec(x, y);
     return R_NilValue;
+END_RCPP
+}
+// test_copy_const_ivec
+RcppStdVector::std_ivec_int test_copy_const_ivec(RcppStdVector::std_ivec_int& x);
+RcppExport SEXP _RcppStdVector_test_copy_const_ivec(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< RcppStdVector::std_ivec_int& >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(test_copy_const_ivec(x));
+    return rcpp_result_gen;
 END_RCPP
 }
 // test_no_copy_construct_ivec
@@ -132,7 +145,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_RcppStdVector_test_native", (DL_FUNC) &_RcppStdVector_test_native, 1},
     {"_RcppStdVector_test_double_it", (DL_FUNC) &_RcppStdVector_test_double_it, 1},
     {"_RcppStdVector_test_inplace", (DL_FUNC) &_RcppStdVector_test_inplace, 1},
-    {"_RcppStdVector_test_no_copy_ivec", (DL_FUNC) &_RcppStdVector_test_no_copy_ivec, 0},
+    {"_RcppStdVector_test_copy_ivec", (DL_FUNC) &_RcppStdVector_test_copy_ivec, 2},
+    {"_RcppStdVector_test_copy_const_ivec", (DL_FUNC) &_RcppStdVector_test_copy_const_ivec, 1},
     {"_RcppStdVector_test_no_copy_construct_ivec", (DL_FUNC) &_RcppStdVector_test_no_copy_construct_ivec, 1},
     {NULL, NULL, 0}
 };
